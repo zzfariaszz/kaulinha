@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react'
 import styled, { keyframes } from 'styled-components'
-import foto1 from '../../assets/images/foto1.png'
-import foto2 from '../../assets/images/foto2.png'
-import foto3 from '../../assets/images/foto3.png'
-import foto4 from '../../assets/images/foto4.png'
-import foto5 from '../../assets/images/foto5.png'
-import foto6 from '../../assets/images/foto6.png'
-import foto7 from '../../assets/images/foto7.png'
-import foto8 from '../../assets/images/foto8.png'
+const FOTOS = [
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto1_nsidz5.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto2_mtgglu.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto3_qjvqvk.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto4_pqjvqvk.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto5_tjpqlm.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto6_uf5h9c.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto7_vqjvqvk.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto8_wqjvqvk.jpg`
+];
 
 // ── ANIMAÇÕES ──
 const float1 = keyframes`
@@ -352,16 +354,16 @@ export default function Home() {
       <Blob className="blob-2" />
       <Blob className="blob-3" />
 
-     <PolaroidsLeft>
-  {[foto1, foto2, foto3, foto4].map((foto, i) => (
+    <PolaroidsLeft>
+      {[FOTOS[0], FOTOS[1], FOTOS[2], FOTOS[3]].map((foto, i) => (
     <Polaroid key={i}>
       <img src={foto} alt="" />
     </Polaroid>
   ))}
 </PolaroidsLeft>
 
-<PolaroidsRight>
-  {[foto5, foto6, foto7, foto8].map((foto, i) => (
+  <PolaroidsRight>
+  {[FOTOS[4], FOTOS[5], FOTOS[6], FOTOS[7]].map((foto, i) => (
     <Polaroid key={i}>
       <img src={foto} alt="" />
     </Polaroid>
