@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Lato:wght@300;400;700&family=Dancing+Script:wght@400;600&display=swap');
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --purple-deep:  #7C4D9F;
+  --pink-main:    #E8829A;
+  --lilac:        #B48FD4;
+  --pink-light:   #F7C5D0;
+  --purple-dark:  #3D1A5E;
+  --bg:           #FDF0F5;
+  --gold:         #FFD98E;
+  color-scheme: light only;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg) !important;
+  color: var(--purple-dark);
+  font-family: 'Lato', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Playfair Display', serif;
+}
+
+@media (max-width: 480px) {
+  /* Modais ocupam mais espaço no mobile */
+  .form-card-mobile {
+    padding: 28px 20px !important;
+  }
+}
+
+/* Scrollbar suave */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--lilac) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--lilac);
+  border-radius: 2px;
+}
+
+@media (max-width: 768px) {
+  section, .section-wrapper {
+    padding-bottom: 80px !important;
+  }
+}
+
+/* Compensar navbar lateral no desktop */
+@media (min-width: 769px) {
+  #home, #contador, #cartas, #razoes, #timeline,
+  #lembrancas, #musicas, #galeria, #filmes, #mapa,
+  #planos, #jogos, #surpresas {
+    padding-left: 80px !important;
+  }
+}
+
+/* Compensar navbar mobile no bottom */
+@media (max-width: 768px) {
+  #home, #contador, #cartas, #razoes, #timeline,
+  #lembrancas, #musicas, #galeria, #filmes, #mapa,
+  #planos, #jogos, #surpresas {
+    padding-bottom: 80px !important;
+  }
+}
