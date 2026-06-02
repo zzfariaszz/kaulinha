@@ -3,12 +3,12 @@ import styled, { keyframes } from 'styled-components'
 const FOTOS = [
 `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto1_nsidz5.jpg`,
 `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto2_mtgglu.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto3_qjvqvk.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto4_pqjvqvk.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto3_loq7io.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto4_fbswyc.jpg`,
 `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto5_tjpqlm.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto6_uf5h9c.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto7_vqjvqvk.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto8_wqjvqvk.jpg`
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto6_u1nb0k.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368132/foto7_um8ht0.jpg`,
+`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368132/foto8_sldqcw.jpg`
 ];
 
 // ── ANIMAÇÕES ──
