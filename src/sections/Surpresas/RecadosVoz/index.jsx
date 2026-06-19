@@ -3,7 +3,6 @@ import { collection, getDocs, addDoc, orderBy, query, serverTimestamp } from 'fi
 import { db } from '../../../services/firebase'
 import { useAuth } from '../../../hooks/useAuth'
 import styled, { keyframes } from 'styled-components'
-import { Howl } from 'howler'
 
 // ── ANIMAÇÕES ──
 const fadeIn = keyframes`
@@ -436,17 +435,15 @@ async function uploadAudio(file) {
 
 export default function RecadosVoz({ onVoltar }) {
   const { isLogado } = useAuth()
-  const [recados, setRecados]     = useState([])
+  const [recados, setRecados]         = useState([])
   const [indiceAtual, setIndiceAtual] = useState(0)
-  const [tocando, setTocando]     = useState(false)
-  const [duracao, setDuracao]     = useState(0)
-  const [progresso, setProgresso] = useState(0)
-  const [formOpen, setFormOpen]   = useState(false)
-  const [loading, setLoading]     = useState(false)
-  const [form, setForm] = useState({
-    mensagem: '', audioFile: null,
-  })
-  const soundRef    = useRef(null)
+  const [tocando, setTocando]         = useState(false)
+  const [duracao, setDuracao]         = useState(0)
+  const [progresso, setProgresso]     = useState(0)
+  const [formOpen, setFormOpen]       = useState(false)
+  const [loading, setLoading]         = useState(false)
+  const [form, setForm] = useState({ mensagem: '', audioFile: null })
+  const audioRef    = useRef(new Audio())
   const intervalRef = useRef(null)
 
   useEffect(() => {
@@ -460,6 +457,11 @@ export default function RecadosVoz({ onVoltar }) {
       }
     }
     fetchRecados()
+
+    return () => {
+      audioRef.current.pause()
+      clearInterval(intervalRef.current)
+    }
   }, [])
 
   function formatDate(data) {
@@ -471,44 +473,48 @@ export default function RecadosVoz({ onVoltar }) {
   function handlePlay() {
     if (!recados[indiceAtual]) return
 
-    if (soundRef.current) {
-      soundRef.current.unload()
-    }
-    clearInterval(intervalRef.current)
+    const audio = audioRef.current
 
-    const sound = new Howl({
-      src: [recados[indiceAtual].audioUrl],
-      onload() {
-        setDuracao(sound.duration())
-      },
-      onplay() {
+    if (tocando) {
+      audio.pause()
+      setTocando(false)
+      clearInterval(intervalRef.current)
+      return
+    }
+
+    if (audio.src !== recados[indiceAtual].audioUrl) {
+      audio.src = recados[indiceAtual].audioUrl
+    }
+
+    audio.onloadedmetadata = () => {
+      setDuracao(audio.duration)
+    }
+
+    audio.onended = () => {
+      setTocando(false)
+      setProgresso(0)
+      clearInterval(intervalRef.current)
+    }
+
+    const promise = audio.play()
+
+    if (promise !== undefined) {
+      promise.then(() => {
         setTocando(true)
         intervalRef.current = setInterval(() => {
-          setProgresso(sound.seek())
+          setProgresso(audio.currentTime)
         }, 100)
-      },
-      onstop() {
-        setTocando(false)
-        setProgresso(0)
-        clearInterval(intervalRef.current)
-      },
-      onend() {
-        setTocando(false)
-        setProgresso(0)
-        clearInterval(intervalRef.current)
-      },
-      onpause() {
-        setTocando(false)
-        clearInterval(intervalRef.current)
-      },
-    })
-
-    soundRef.current = sound
-    sound.play()
+      }).catch(err => {
+        console.error('Erro ao tocar:', err)
+        alert('Toque na tela e tente novamente')
+      })
+    }
   }
 
   function handleProxima() {
-    if (soundRef.current) soundRef.current.stop()
+    const audio = audioRef.current
+    audio.pause()
+    audio.src = ''
     clearInterval(intervalRef.current)
     setProgresso(0)
     setTocando(false)
