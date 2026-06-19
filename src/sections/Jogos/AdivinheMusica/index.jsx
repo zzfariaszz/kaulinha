@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { collection, getDocs, addDoc } from 'firebase/firestore'
 import { db } from '../../../services/firebase'
 import { useAuth } from '../../../hooks/useAuth'
@@ -17,13 +17,8 @@ const popIn = keyframes`
 `
 
 const pulse = keyframes`
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50%       { transform: scale(1.08); opacity: 0.8; }
-`
-
-const rotate = keyframes`
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.05); }
 `
 
 // ── ESTILOS ──
@@ -88,75 +83,47 @@ const Divider = styled.div`
   border-radius: 2px;
 `
 
-const PlayerWrap = styled.div`
-  background: rgba(255,255,255,0.05);
+const ScoreBadge = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.06);
   border: 1px solid rgba(180,143,212,0.2);
-  border-radius: 24px;
-  padding: 32px;
+  border-radius: 30px;
+  padding: 6px 18px;
+  font-size: 0.72rem;
+  color: var(--lilac);
+  letter-spacing: 0.08em;
   margin-bottom: 28px;
 `
 
-const Disco = styled.div`
-  width: 100px; height: 100px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--purple-deep), var(--pink-main));
-  margin: 0 auto 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 32px rgba(124,77,159,0.4);
-  animation: ${({ $tocando }) => $tocando ? rotate : 'none'} 4s linear infinite;
-  position: relative;
-
-  &::after {
-    content: '';
-    width: 28px; height: 28px;
-    border-radius: 50%;
-    background: var(--purple-dark);
-    position: absolute;
-  }
+const LetraCard = styled.div`
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(180,143,212,0.2);
+  border-radius: 24px;
+  padding: 36px 32px;
+  margin-bottom: 28px;
+  animation: ${popIn} 0.5s ease;
 `
 
-const BtnPlay = styled.button`
-  width: 56px; height: 56px;
+const LetraIcone = styled.div`
+  width: 48px; height: 48px;
   border-radius: 50%;
-  border: none;
   background: linear-gradient(135deg, var(--purple-deep), var(--pink-main));
-  color: #fff;
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
-  box-shadow: 0 6px 20px rgba(124,77,159,0.4);
-  transition: transform 0.2s, box-shadow 0.2s;
-  animation: ${({ $pulsing }) => $pulsing ? pulse : 'none'} 1.5s ease-in-out infinite;
-
-  &:hover { transform: scale(1.1); box-shadow: 0 8px 28px rgba(124,77,159,0.5); }
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  animation: ${pulse} 2s ease-in-out infinite;
 `
 
-const ProgressWrap = styled.div`
-  width: 100%;
-  height: 4px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 12px;
-`
-
-const ProgressFill = styled.div`
-  height: 100%;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--purple-deep), var(--pink-main));
-  width: ${({ $pct }) => $pct}%;
-  transition: width 0.1s linear;
-`
-
-const TempoText = styled.p`
-  font-size: 0.72rem;
-  color: var(--lilac);
-  letter-spacing: 0.08em;
+const LetraTexto = styled.p`
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1.05rem;
+  color: #fff;
+  line-height: 1.9;
+  white-space: pre-line;
 `
 
 const PerguntaText = styled.p`
@@ -227,20 +194,6 @@ const FeedbackMsg = styled.p`
   color: ${({ $certa }) => $certa ? 'var(--pink-light)' : 'var(--lilac)'};
   margin-bottom: 16px;
   animation: ${popIn} 0.3s ease;
-`
-
-const ScoreBadge = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(180,143,212,0.2);
-  border-radius: 30px;
-  padding: 6px 18px;
-  font-size: 0.72rem;
-  color: var(--lilac);
-  letter-spacing: 0.08em;
-  margin-bottom: 28px;
 `
 
 const ResultadoWrap = styled.div`
@@ -335,7 +288,6 @@ const SemMusicas = styled.div`
   margin-bottom: 28px;
 `
 
-// ── FORM MODAL ──
 const FormOverlay = styled.div`
   position: fixed;
   inset: 0;
@@ -356,8 +308,10 @@ const FormCard = styled.div`
   border: 1px solid rgba(180,143,212,0.2);
   border-radius: 20px;
   padding: 40px 36px;
-  max-width: 400px;
+  max-width: 440px;
   width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
   transform: ${({ $visible }) => $visible ? 'translateY(0)' : 'translateY(20px)'};
   transition: transform 0.3s;
 `
@@ -400,6 +354,26 @@ const FormInput = styled.input`
   &::placeholder { color: rgba(255,255,255,0.25); }
 `
 
+const FormTextarea = styled.textarea`
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(180,143,212,0.2);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: #fff;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 0.88rem;
+  outline: none;
+  resize: vertical;
+  min-height: 120px;
+  line-height: 1.7;
+  transition: border-color 0.2s;
+
+  &:focus { border-color: var(--pink-main); }
+  &::placeholder { color: rgba(255,255,255,0.25); }
+`
+
 const FormHint = styled.p`
   font-size: 0.62rem;
   color: rgba(180,143,212,0.5);
@@ -434,27 +408,14 @@ const BtnSubmit = styled.button`
 `
 
 const LETRAS_OPCAO = ['A', 'B', 'C', 'D']
-const TEMPO_TOTAL  = 30
+const TOTAL_RODADAS = 5
 
 function getMensagem(acertos, total) {
   const pct = acertos / total
-  if (pct === 1)   return 'Você sabe muito!'
-  if (pct >= 0.75) return 'bom!'
-  if (pct >= 0.5)  return 'da pra melhorar.'
-  return 'melhor ficar de boa.'
-}
-
-// ── SPOTIFY AUTH ──
-
-async function getSpotifyToken() {
-  try {
-    const response = await fetch('/api/spotify')
-    const data = await response.json()
-    return data.access_token
-  } catch (err) {
-    console.error('Erro ao obter token:', err)
-    return null
-  }
+  if (pct === 1)   return 'Você conhece todas as músicas! Incrível!'
+  if (pct >= 0.75) return 'Muito bem! Você conhece bem essa playlist!'
+  if (pct >= 0.5)  return 'Não foi mal! Mas tem músicas pra descobrir ainda...'
+  return 'Hmm, precisa ouvir mais as músicas!'
 }
 
 // ── COMPONENTE ──
@@ -464,52 +425,27 @@ export default function AdivinheMusica({ onVoltar }) {
   const [rodada, setRodada]           = useState(null)
   const [opcoes, setOpcoes]           = useState([])
   const [selecionada, setSelecionada] = useState(null)
-  const [tocando, setTocando]         = useState(false)
-  const [tempo, setTempo]             = useState(TEMPO_TOTAL)
   const [acertos, setAcertos]         = useState(0)
   const [rodadaNum, setRodadaNum]     = useState(0)
   const [fim, setFim]                 = useState(false)
   const [formOpen, setFormOpen]       = useState(false)
-  const [novaMusica, setNovaMusica]   = useState({ titulo: '', artista: '', spotifyId: '' })
-  const [spotifyToken, setSpotifyToken] = useState(null)
-  const audioRef = useRef(null)
-  const timerRef  = useRef(null)
+  const [novaMusica, setNovaMusica]   = useState({
+    titulo: '', artista: '', letra: ''
+  })
 
-  const TOTAL_RODADAS = 5
-
-useEffect(() => {
-  // Obter token do Spotify
-  async function initSpotify() {
-    try {
-      console.log('Iniciando obtenção de token Spotify...')
-      const token = await getSpotifyToken()
-      console.log('Token obtido:', token ? 'sucesso' : 'falha')
-      if (token) {
-        setSpotifyToken(token)
-      } else {
-        console.error('Token é null ou undefined')
+  useEffect(() => {
+    async function fetchMusicas() {
+      try {
+        const snap = await getDocs(collection(db, 'jogo_musicas'))
+        const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        setMusicas(lista)
+        if (lista.length >= 4) iniciarRodada(lista, 0)
+      } catch (err) {
+        console.error('Erro ao carregar músicas:', err)
       }
-    } catch (err) {
-      console.error('Erro ao obter token Spotify:', err)
     }
-  }
-
-  // Carregar músicas
-  async function fetchMusicas() {
-    try {
-      const snap = await getDocs(collection(db, 'jogo_musicas'))
-      const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-      setMusicas(lista)
-      if (lista.length >= 4) iniciarRodada(lista, 0)
-    } catch (err) {
-      console.error('Erro ao carregar músicas:', err)
-    }
-  }
-
-  initSpotify()
-  fetchMusicas()
-  return () => clearInterval(timerRef.current)
-}, [])
+    fetchMusicas()
+  }, [])
 
   function iniciarRodada(lista, num) {
     if (num >= TOTAL_RODADAS) { setFim(true); return }
@@ -520,73 +456,11 @@ useEffect(() => {
     setRodada(correta)
     setOpcoes(todasOpcoes)
     setSelecionada(null)
-    setTocando(false)
-    setTempo(TEMPO_TOTAL)
     setRodadaNum(num)
-    clearInterval(timerRef.current)
   }
-
- async function handlePlay() {
-  if (!rodada || !spotifyToken) {
-    console.log('Rodada:', rodada, 'Token:', spotifyToken)
-    alert('Aguarde um momento, carregando...')
-    return
-  }
-
-  try {
-    console.log('Buscando preview para:', rodada.spotifyId)
-    
-    // Buscar preview da música no Spotify
-    const response = await fetch(
-      `https://api.spotify.com/v1/tracks/${rodada.spotifyId}`,
-      { headers: { 'Authorization': `Bearer ${spotifyToken}` } }
-    )
-    const data = await response.json()
-    console.log('Resposta Spotify:', data)
-
-    if (data.preview_url) {
-      if (audioRef.current) {
-        audioRef.current.pause()
-      }
-      audioRef.current = new Audio(data.preview_url)
-      audioRef.current.play()
-      setTocando(true)
-
-      // Timer para contar 30 segundos
-      let tempoRestante = TEMPO_TOTAL
-      setTempo(tempoRestante)
-
-      timerRef.current = setInterval(() => {
-        tempoRestante--
-        setTempo(tempoRestante)
-
-        if (tempoRestante <= 0) {
-          clearInterval(timerRef.current)
-          audioRef.current.pause()
-          setTocando(false)
-          setTempo(TEMPO_TOTAL)
-        }
-      }, 1000)
-
-      audioRef.current.onended = () => {
-        clearInterval(timerRef.current)
-        setTocando(false)
-        setTempo(TEMPO_TOTAL)
-      }
-    } else {
-      alert('Essa música não tem preview disponível no Spotify')
-    }
-  } catch (err) {
-    console.error('Erro ao reproduzir:', err)
-    alert('Erro ao reproduzir a música: ' + err.message)
-  }
-}
 
   function handleOpcao(i) {
     if (selecionada !== null) return
-    clearInterval(timerRef.current)
-    if (audioRef.current) audioRef.current.pause()
-    setTocando(false)
     setSelecionada(i)
     const certa = opcoes[i].id === rodada.id
     if (certa) {
@@ -596,8 +470,6 @@ useEffect(() => {
   }
 
   function handleProxima() {
-    clearInterval(timerRef.current)
-    if (audioRef.current) audioRef.current.pause()
     iniciarRodada(musicas, rodadaNum + 1)
   }
 
@@ -608,13 +480,58 @@ useEffect(() => {
   }
 
   async function handleAddMusica() {
-    if (!novaMusica.titulo.trim() || !novaMusica.spotifyId.trim()) return
-    const nova = { ...novaMusica }
-    const ref = await addDoc(collection(db, 'jogo_musicas'), nova)
-    setMusicas(prev => [...prev, { id: ref.id, ...nova }])
-    setNovaMusica({ titulo: '', artista: '', spotifyId: '' })
-    setFormOpen(false)
+    if (!novaMusica.titulo.trim() || !novaMusica.letra.trim()) {
+      alert('Preencha o título e a letra!')
+      return
+    }
+    try {
+      const nova = { ...novaMusica }
+      const ref = await addDoc(collection(db, 'jogo_musicas'), nova)
+      setMusicas(prev => [...prev, { id: ref.id, ...nova }])
+      setNovaMusica({ titulo: '', artista: '', letra: '' })
+      setFormOpen(false)
+    } catch (err) {
+      console.error('Erro ao salvar:', err)
+      alert('Erro ao salvar a música')
+    }
   }
+
+  const FormMusica = (
+    <FormOverlay $visible={formOpen} onClick={e => e.target === e.currentTarget && setFormOpen(false)}>
+      <FormCard $visible={formOpen}>
+        <FormTitle>Nova música para o jogo</FormTitle>
+        <FormGroup>
+          <FormLabel>Nome da música</FormLabel>
+          <FormInput
+            value={novaMusica.titulo}
+            onChange={e => setNovaMusica(p => ({ ...p, titulo: e.target.value }))}
+            placeholder="Ex: Lover..."
+          />
+        </FormGroup>
+        <FormGroup>
+          <FormLabel>Artista</FormLabel>
+          <FormInput
+            value={novaMusica.artista}
+            onChange={e => setNovaMusica(p => ({ ...p, artista: e.target.value }))}
+            placeholder="Ex: Taylor Swift..."
+          />
+        </FormGroup>
+        <FormGroup>
+          <FormLabel>Trecho da letra (refrão)</FormLabel>
+          <FormTextarea
+            value={novaMusica.letra}
+            onChange={e => setNovaMusica(p => ({ ...p, letra: e.target.value }))}
+            placeholder={"Ex:\nAnd I will love you\nUntil we're dust and bones..."}
+          />
+          <FormHint>Cole o refrão ou um trecho marcante da música</FormHint>
+        </FormGroup>
+        <FormButtons>
+          <BtnCancel onClick={() => setFormOpen(false)}>Cancelar</BtnCancel>
+          <BtnSubmit onClick={handleAddMusica}>Salvar</BtnSubmit>
+        </FormButtons>
+      </FormCard>
+    </FormOverlay>
+  )
 
   if (musicas.length < 4) {
     return (
@@ -625,10 +542,10 @@ useEffect(() => {
           <Divider />
           <SemMusicas>
             <p style={{ color: 'var(--lilac)', marginBottom: '8px', fontFamily: 'Playfair Display', fontStyle: 'italic' }}>
-              Precisa de pelo menos 4 músicas com ID do Spotify para jogar!
+              Precisa de pelo menos 4 músicas para jogar!
             </p>
             <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.78rem' }}>
-              Adicione músicas usando o botão abaixo.
+              Você tem {musicas.length} de 4 músicas cadastradas.
             </p>
           </SemMusicas>
           <BtnRow>
@@ -640,43 +557,7 @@ useEffect(() => {
             {onVoltar && <BtnVoltar onClick={onVoltar}>Voltar aos jogos</BtnVoltar>}
           </BtnRow>
         </Game>
-
-        <FormOverlay $visible={formOpen} onClick={e => e.target === e.currentTarget && setFormOpen(false)}>
-          <FormCard $visible={formOpen}>
-            <FormTitle>Nova música para o jogo</FormTitle>
-            <FormGroup>
-              <FormLabel>Nome da música</FormLabel>
-              <FormInput
-                value={novaMusica.titulo}
-                onChange={e => setNovaMusica(p => ({ ...p, titulo: e.target.value }))}
-                placeholder="Ex: Lover..."
-              />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel>Artista</FormLabel>
-              <FormInput
-                value={novaMusica.artista}
-                onChange={e => setNovaMusica(p => ({ ...p, artista: e.target.value }))}
-                placeholder="Ex: Taylor Swift..."
-              />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel>ID do Spotify</FormLabel>
-              <FormInput
-                value={novaMusica.spotifyId}
-                onChange={e => setNovaMusica(p => ({ ...p, spotifyId: e.target.value }))}
-                placeholder="Ex: 1dGr1c8CrMLDpV6mPbImSI"
-              />
-              <FormHint>
-                Copie o link da música no Spotify e pegue o ID após /track/
-              </FormHint>
-            </FormGroup>
-            <FormButtons>
-              <BtnCancel onClick={() => setFormOpen(false)}>Cancelar</BtnCancel>
-              <BtnSubmit onClick={handleAddMusica}>Salvar</BtnSubmit>
-            </FormButtons>
-          </FormCard>
-        </FormOverlay>
+        {FormMusica}
       </Wrapper>
     )
   }
@@ -703,43 +584,7 @@ useEffect(() => {
             {onVoltar && <BtnVoltar onClick={onVoltar}>Voltar aos jogos</BtnVoltar>}
           </BtnRow>
         </Game>
-
-        <FormOverlay $visible={formOpen} onClick={e => e.target === e.currentTarget && setFormOpen(false)}>
-          <FormCard $visible={formOpen}>
-            <FormTitle>Nova música para o jogo</FormTitle>
-            <FormGroup>
-              <FormLabel>Nome da música</FormLabel>
-              <FormInput
-                value={novaMusica.titulo}
-                onChange={e => setNovaMusica(p => ({ ...p, titulo: e.target.value }))}
-                placeholder="Ex: Lover..."
-              />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel>Artista</FormLabel>
-              <FormInput
-                value={novaMusica.artista}
-                onChange={e => setNovaMusica(p => ({ ...p, artista: e.target.value }))}
-                placeholder="Ex: Taylor Swift..."
-              />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel>ID do Spotify</FormLabel>
-              <FormInput
-                value={novaMusica.spotifyId}
-                onChange={e => setNovaMusica(p => ({ ...p, spotifyId: e.target.value }))}
-                placeholder="Ex: 1dGr1c8CrMLDpV6mPbImSI"
-              />
-              <FormHint>
-                Copie o link da música no Spotify e pegue o ID após /track/
-              </FormHint>
-            </FormGroup>
-            <FormButtons>
-              <BtnCancel onClick={() => setFormOpen(false)}>Cancelar</BtnCancel>
-              <BtnSubmit onClick={handleAddMusica}>Salvar</BtnSubmit>
-            </FormButtons>
-          </FormCard>
-        </FormOverlay>
+        {FormMusica}
       </Wrapper>
     )
   }
@@ -759,33 +604,18 @@ useEffect(() => {
           Rodada {rodadaNum + 1} de {TOTAL_RODADAS} &nbsp;·&nbsp; {acertos} acertos
         </ScoreBadge>
 
-        <PlayerWrap>
-          <Disco $tocando={tocando}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2" style={{ position: 'relative', zIndex: 1 }}>
+        <LetraCard>
+          <LetraIcone>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
               <path d="M9 18V5l12-2v13"/>
               <circle cx="6" cy="18" r="3"/>
               <circle cx="18" cy="16" r="3"/>
             </svg>
-          </Disco>
+          </LetraIcone>
+          <LetraTexto>{rodada.letra}</LetraTexto>
+        </LetraCard>
 
-          <BtnPlay
-            onClick={handlePlay}
-            disabled={tocando || selecionada !== null}
-            $pulsing={!tocando && selecionada === null}
-          >
-            {tocando
-              ? <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-              : <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            }
-          </BtnPlay>
-
-          <ProgressWrap>
-            <ProgressFill $pct={((TEMPO_TOTAL - tempo) / TEMPO_TOTAL) * 100} />
-          </ProgressWrap>
-          <TempoText>{tempo}s restantes</TempoText>
-        </PlayerWrap>
-
-        <PerguntaText>Qual é essa música?</PerguntaText>
+        <PerguntaText>De qual música é essa letra?</PerguntaText>
 
         <OpcoesGrid>
           {opcoes.map((op, i) => {
@@ -834,43 +664,7 @@ useEffect(() => {
           {onVoltar && <BtnVoltar onClick={onVoltar}>Voltar aos jogos</BtnVoltar>}
         </BtnRow>
       </Game>
-
-      <FormOverlay $visible={formOpen} onClick={e => e.target === e.currentTarget && setFormOpen(false)}>
-        <FormCard $visible={formOpen}>
-          <FormTitle>Nova música para o jogo</FormTitle>
-          <FormGroup>
-            <FormLabel>Nome da música</FormLabel>
-            <FormInput
-              value={novaMusica.titulo}
-              onChange={e => setNovaMusica(p => ({ ...p, titulo: e.target.value }))}
-              placeholder="Ex: Lover..."
-            />
-          </FormGroup>
-          <FormGroup>
-            <FormLabel>Artista</FormLabel>
-            <FormInput
-              value={novaMusica.artista}
-              onChange={e => setNovaMusica(p => ({ ...p, artista: e.target.value }))}
-              placeholder="Ex: Taylor Swift..."
-            />
-          </FormGroup>
-          <FormGroup>
-            <FormLabel>ID do Spotify</FormLabel>
-            <FormInput
-              value={novaMusica.spotifyId}
-              onChange={e => setNovaMusica(p => ({ ...p, spotifyId: e.target.value }))}
-              placeholder="Ex: 1dGr1c8CrMLDpV6mPbImSI"
-            />
-            <FormHint>
-              Copie o link da música no Spotify e pegue o ID após /track/
-            </FormHint>
-          </FormGroup>
-          <FormButtons>
-            <BtnCancel onClick={() => setFormOpen(false)}>Cancelar</BtnCancel>
-            <BtnSubmit onClick={handleAddMusica}>Salvar</BtnSubmit>
-          </FormButtons>
-        </FormCard>
-      </FormOverlay>
+      {FormMusica}
     </Wrapper>
   )
 }
