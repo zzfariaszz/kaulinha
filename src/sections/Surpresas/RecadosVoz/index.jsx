@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { collection, getDocs, addDoc, orderBy, query } from 'firebase/firestore'
+import { collection, getDocs, addDoc, orderBy, query, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../../services/firebase'
 import { useAuth } from '../../../hooks/useAuth'
 import styled, { keyframes } from 'styled-components'
@@ -170,19 +170,10 @@ const PlayBtn = styled.button`
   transition: transform 0.2s;
   animation: ${({ $tocando }) => $tocando ? pulse : 'none'} 1.5s ease-in-out infinite;
 
-  &:hover {
-    transform: scale(1.1);
-  }
+  &:hover { transform: scale(1.1); }
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  svg {
-    width: 28px;
-    height: 28px;
-  }
+  svg { width: 28px; height: 28px; }
 `
 
 const ProgressWrap = styled.div`
@@ -235,14 +226,8 @@ const BtnProxima = styled.button`
   box-shadow: 0 6px 24px rgba(124,77,159,0.35);
   transition: transform 0.25s;
 
-  &:hover {
-    transform: translateY(-3px);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  &:hover { transform: translateY(-3px); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 `
 
 const BtnVoltar = styled.button`
@@ -255,9 +240,7 @@ const BtnVoltar = styled.button`
   cursor: pointer;
   transition: color 0.2s;
 
-  &:hover {
-    color: var(--purple-deep);
-  }
+  &:hover { color: var(--purple-deep); }
 `
 
 const MensagemFim = styled.div`
@@ -451,22 +434,20 @@ async function uploadAudio(file) {
   return data.secure_url
 }
 
-// ── COMPONENTE ──
 export default function RecadosVoz({ onVoltar }) {
   const { isLogado } = useAuth()
-  const [recados, setRecados] = useState([])
+  const [recados, setRecados]     = useState([])
   const [indiceAtual, setIndiceAtual] = useState(0)
-  const [tocando, setTocando] = useState(false)
-  const [duracao, setDuracao] = useState(0)
+  const [tocando, setTocando]     = useState(false)
+  const [duracao, setDuracao]     = useState(0)
   const [progresso, setProgresso] = useState(0)
-  const [formOpen, setFormOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [formOpen, setFormOpen]   = useState(false)
+  const [loading, setLoading]     = useState(false)
   const [form, setForm] = useState({
-    titulo: '',
-    mensagem: '',
-    audioFile: null,
+    mensagem: '', audioFile: null,
   })
-  const soundRef = useRef(null)
+  const soundRef    = useRef(null)
+  const intervalRef = useRef(null)
 
   useEffect(() => {
     async function fetchRecados() {
@@ -493,6 +474,7 @@ export default function RecadosVoz({ onVoltar }) {
     if (soundRef.current) {
       soundRef.current.unload()
     }
+    clearInterval(intervalRef.current)
 
     const sound = new Howl({
       src: [recados[indiceAtual].audioUrl],
@@ -501,42 +483,42 @@ export default function RecadosVoz({ onVoltar }) {
       },
       onplay() {
         setTocando(true)
+        intervalRef.current = setInterval(() => {
+          setProgresso(sound.seek())
+        }, 100)
       },
       onstop() {
         setTocando(false)
         setProgresso(0)
+        clearInterval(intervalRef.current)
       },
       onend() {
         setTocando(false)
         setProgresso(0)
+        clearInterval(intervalRef.current)
       },
       onpause() {
         setTocando(false)
+        clearInterval(intervalRef.current)
       },
     })
 
     soundRef.current = sound
     sound.play()
-
-    const interval = setInterval(() => {
-      setProgresso(sound.seek())
-    }, 100)
-
-    return () => clearInterval(interval)
   }
 
   function handleProxima() {
-    if (soundRef.current) {
-      soundRef.current.stop()
-    }
+    if (soundRef.current) soundRef.current.stop()
+    clearInterval(intervalRef.current)
     setProgresso(0)
     setTocando(false)
+    setDuracao(0)
     setIndiceAtual(prev => prev + 1)
   }
 
   async function handleAddRecado() {
-    if (!form.titulo.trim() || !form.audioFile) {
-      alert('Preencha o título e selecione o áudio!')
+    if (!form.audioFile) {
+      alert('Selecione um arquivo de áudio!')
       return
     }
 
@@ -544,14 +526,13 @@ export default function RecadosVoz({ onVoltar }) {
     try {
       const audioUrl = await uploadAudio(form.audioFile)
       const novo = {
-        titulo: form.titulo,
         mensagem: form.mensagem,
         audioUrl,
-        data: new Date(),
+        data: serverTimestamp(),
       }
       const ref = await addDoc(collection(db, 'recados_voz'), novo)
-      setRecados(prev => [...prev, { id: ref.id, ...novo }])
-      setForm({ titulo: '', mensagem: '', audioFile: null })
+      setRecados(prev => [...prev, { id: ref.id, ...novo, data: new Date() }])
+      setForm({ mensagem: '', audioFile: null })
       setFormOpen(false)
     } catch (err) {
       console.error('Erro ao salvar:', err)
@@ -561,6 +542,41 @@ export default function RecadosVoz({ onVoltar }) {
     }
   }
 
+  const FormRecado = (
+    <FormOverlay $visible={formOpen} onClick={e => e.target === e.currentTarget && setFormOpen(false)}>
+      <FormCard $visible={formOpen}>
+        <FormTitle>Novo recado de voz</FormTitle>
+        <FormGroup>
+          <FormLabel>Mensagem (opcional)</FormLabel>
+          <FormTextarea
+            value={form.mensagem}
+            onChange={e => setForm(p => ({ ...p, mensagem: e.target.value }))}
+            placeholder="Deixe uma mensagem curta..."
+            disabled={loading}
+          />
+        </FormGroup>
+        <FormGroup>
+          <FormLabel>Arquivo de áudio</FormLabel>
+          <FormInput
+            type="file"
+            accept="audio/mp3,audio/mpeg,audio/wav,audio/ogg,audio/m4a,audio/aac,.mp3,.wav,.ogg,.m4a,.aac"
+            onChange={e => setForm(p => ({ ...p, audioFile: e.target.files[0] }))}
+            disabled={loading}
+          />
+          <FormHint>Formatos suportados: MP3, WAV, M4A, OGG, AAC</FormHint>
+        </FormGroup>
+        <FormButtons>
+          <BtnCancel onClick={() => setFormOpen(false)} disabled={loading}>
+            Cancelar
+          </BtnCancel>
+          <BtnSubmit onClick={handleAddRecado} disabled={loading}>
+            {loading ? 'Salvando...' : 'Salvar'}
+          </BtnSubmit>
+        </FormButtons>
+      </FormCard>
+    </FormOverlay>
+  )
+
   if (recados.length === 0) {
     return (
       <Wrapper>
@@ -568,14 +584,12 @@ export default function RecadosVoz({ onVoltar }) {
           <Eyebrow>para você</Eyebrow>
           <Title>Recados de <em>Voz</em></Title>
           <Divider />
-
           <MensagemFim style={{ marginBottom: '32px' }}>
             <MensagemTitulo>Nenhum recado ainda</MensagemTitulo>
             <MensagemTexto>
               Felipe ainda não gravou nenhum recado para você. Volte depois para descobrir!
             </MensagemTexto>
           </MensagemFim>
-
           <BtnRow>
             {isLogado && (
               <AddBtn onClick={() => setFormOpen(true)}>
@@ -588,48 +602,7 @@ export default function RecadosVoz({ onVoltar }) {
             {onVoltar && <BtnVoltar onClick={onVoltar}>Voltar às surpresas</BtnVoltar>}
           </BtnRow>
         </Inner>
-
-        <FormOverlay $visible={formOpen} onClick={e => e.target === e.currentTarget && setFormOpen(false)}>
-          <FormCard $visible={formOpen}>
-            <FormTitle>Novo recado de voz</FormTitle>
-            <FormGroup>
-              <FormLabel>Título</FormLabel>
-              <FormInput
-                value={form.titulo}
-                onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
-                placeholder="Ex: Um recado especial..."
-                disabled={loading}
-              />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel>Mensagem (opcional)</FormLabel>
-              <FormTextarea
-                value={form.mensagem}
-                onChange={e => setForm(p => ({ ...p, mensagem: e.target.value }))}
-                placeholder="Deixe uma mensagem curta..."
-                disabled={loading}
-              />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel>Arquivo de áudio</FormLabel>
-              <FormInput
-                type="file"
-                accept="audio/*"
-                onChange={e => setForm(p => ({ ...p, audioFile: e.target.files[0] }))}
-                disabled={loading}
-              />
-              <FormHint>Formatos suportados: MP3, WAV, M4A, OGG</FormHint>
-            </FormGroup>
-            <FormButtons>
-              <BtnCancel onClick={() => setFormOpen(false)} disabled={loading}>
-                Cancelar
-              </BtnCancel>
-              <BtnSubmit onClick={handleAddRecado} disabled={loading}>
-                {loading ? 'Salvando...' : 'Salvar'}
-              </BtnSubmit>
-            </FormButtons>
-          </FormCard>
-        </FormOverlay>
+        {FormRecado}
       </Wrapper>
     )
   }
@@ -644,7 +617,6 @@ export default function RecadosVoz({ onVoltar }) {
               Obrigado por ouvir cada recado com o coração. Cada um foi feito pensando em você.
             </MensagemTexto>
           </MensagemFim>
-
           <BtnRow style={{ marginTop: '32px' }}>
             {isLogado && (
               <AddBtn onClick={() => setFormOpen(true)}>
@@ -657,48 +629,7 @@ export default function RecadosVoz({ onVoltar }) {
             {onVoltar && <BtnVoltar onClick={onVoltar}>Voltar às surpresas</BtnVoltar>}
           </BtnRow>
         </Inner>
-
-        <FormOverlay $visible={formOpen} onClick={e => e.target === e.currentTarget && setFormOpen(false)}>
-          <FormCard $visible={formOpen}>
-            <FormTitle>Novo recado de voz</FormTitle>
-            <FormGroup>
-              <FormLabel>Título</FormLabel>
-              <FormInput
-                value={form.titulo}
-                onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
-                placeholder="Ex: Um recado especial..."
-                disabled={loading}
-              />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel>Mensagem (opcional)</FormLabel>
-              <FormTextarea
-                value={form.mensagem}
-                onChange={e => setForm(p => ({ ...p, mensagem: e.target.value }))}
-                placeholder="Deixe uma mensagem curta..."
-                disabled={loading}
-              />
-            </FormGroup>
-            <FormGroup>
-              <FormLabel>Arquivo de áudio</FormLabel>
-              <FormInput
-                type="file"
-                accept="audio/*"
-                onChange={e => setForm(p => ({ ...p, audioFile: e.target.files[0] }))}
-                disabled={loading}
-              />
-              <FormHint>Formatos suportados: MP3, WAV, M4A, OGG</FormHint>
-            </FormGroup>
-            <FormButtons>
-              <BtnCancel onClick={() => setFormOpen(false)} disabled={loading}>
-                Cancelar
-              </BtnCancel>
-              <BtnSubmit onClick={handleAddRecado} disabled={loading}>
-                {loading ? 'Salvando...' : 'Salvar'}
-              </BtnSubmit>
-            </FormButtons>
-          </FormCard>
-        </FormOverlay>
+        {FormRecado}
       </Wrapper>
     )
   }
@@ -722,12 +653,6 @@ export default function RecadosVoz({ onVoltar }) {
             </EnvelopeIcon>
 
             <EnvelopeDate>{formatDate(recadoAtual.data)}</EnvelopeDate>
-
-            {recadoAtual.titulo && (
-              <EnvelopeMsg style={{ fontSize: '1.1rem', marginBottom: '12px' }}>
-                {recadoAtual.titulo}
-              </EnvelopeMsg>
-            )}
 
             {recadoAtual.mensagem && (
               <EnvelopeMsg>{recadoAtual.mensagem}</EnvelopeMsg>
@@ -778,48 +703,7 @@ export default function RecadosVoz({ onVoltar }) {
           {onVoltar && <BtnVoltar onClick={onVoltar}>Voltar às surpresas</BtnVoltar>}
         </BtnRow>
       </Inner>
-
-      <FormOverlay $visible={formOpen} onClick={e => e.target === e.currentTarget && setFormOpen(false)}>
-        <FormCard $visible={formOpen}>
-          <FormTitle>Novo recado de voz</FormTitle>
-          <FormGroup>
-            <FormLabel>Título</FormLabel>
-            <FormInput
-              value={form.titulo}
-              onChange={e => setForm(p => ({ ...p, titulo: e.target.value }))}
-              placeholder="Ex: Um recado especial..."
-              disabled={loading}
-            />
-          </FormGroup>
-          <FormGroup>
-            <FormLabel>Mensagem (opcional)</FormLabel>
-            <FormTextarea
-              value={form.mensagem}
-              onChange={e => setForm(p => ({ ...p, mensagem: e.target.value }))}
-              placeholder="Deixe uma mensagem curta..."
-              disabled={loading}
-            />
-          </FormGroup>
-          <FormGroup>
-            <FormLabel>Arquivo de áudio</FormLabel>
-            <FormInput
-              type="file"
-              accept="audio/*"
-              onChange={e => setForm(p => ({ ...p, audioFile: e.target.files[0] }))}
-              disabled={loading}
-            />
-            <FormHint>Formatos suportados: MP3, WAV, M4A, OGG</FormHint>
-          </FormGroup>
-          <FormButtons>
-            <BtnCancel onClick={() => setFormOpen(false)} disabled={loading}>
-              Cancelar
-            </BtnCancel>
-            <BtnSubmit onClick={handleAddRecado} disabled={loading}>
-              {loading ? 'Salvando...' : 'Salvar'}
-            </BtnSubmit>
-          </FormButtons>
-        </FormCard>
-      </FormOverlay>
+      {FormRecado}
     </Wrapper>
   )
 }
