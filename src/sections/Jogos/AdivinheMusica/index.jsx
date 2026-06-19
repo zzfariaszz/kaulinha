@@ -477,29 +477,39 @@ export default function AdivinheMusica({ onVoltar }) {
 
   const TOTAL_RODADAS = 5
 
-  useEffect(() => {
-    // Obter token do Spotify
-    async function initSpotify() {
-      try {
-        const token = await getSpotifyToken()
+useEffect(() => {
+  // Obter token do Spotify
+  async function initSpotify() {
+    try {
+      console.log('Iniciando obtenção de token Spotify...')
+      const token = await getSpotifyToken()
+      console.log('Token obtido:', token ? 'sucesso' : 'falha')
+      if (token) {
         setSpotifyToken(token)
-      } catch (err) {
-        console.error('Erro ao obter token Spotify:', err)
+      } else {
+        console.error('Token é null ou undefined')
       }
+    } catch (err) {
+      console.error('Erro ao obter token Spotify:', err)
     }
+  }
 
-    // Carregar músicas
-    async function fetchMusicas() {
+  // Carregar músicas
+  async function fetchMusicas() {
+    try {
       const snap = await getDocs(collection(db, 'jogo_musicas'))
       const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       setMusicas(lista)
       if (lista.length >= 4) iniciarRodada(lista, 0)
+    } catch (err) {
+      console.error('Erro ao carregar músicas:', err)
     }
+  }
 
-    initSpotify()
-    fetchMusicas()
-    return () => clearInterval(timerRef.current)
-  }, [])
+  initSpotify()
+  fetchMusicas()
+  return () => clearInterval(timerRef.current)
+}, [])
 
   function iniciarRodada(lista, num) {
     if (num >= TOTAL_RODADAS) { setFim(true); return }
