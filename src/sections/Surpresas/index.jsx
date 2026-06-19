@@ -3,6 +3,7 @@ import { collection, getDocs } from 'firebase/firestore'
 import { db } from '../../services/firebase'
 import styled, { keyframes } from 'styled-components'
 import confetti from 'canvas-confetti'
+import RecadosVoz from './RecadosVoz'
 
 // ── ANIMAÇÕES ──
 const fadeIn = keyframes`
@@ -353,96 +354,6 @@ const ConstelaDesc = styled.p`
   margin-bottom: 24px;
 `
 
-const RecadoCard = styled.div`
-  max-width: 420px;
-  width: 100%;
-  text-align: center;
-  animation: ${popIn} 0.5s ease;
-`
-
-const EnvelopeWrap = styled.div`
-  position: relative;
-  width: 140px;
-  height: 100px;
-  margin: 0 auto 32px;
-  cursor: pointer;
-  transition: transform 0.3s;
-  &:hover { transform: scale(1.05); }
-`
-
-const EnvBody = styled.div`
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(160deg, #fff 60%, #f3e8ff 100%);
-  border-radius: 4px;
-  border: 1px solid rgba(180,143,212,0.3);
-`
-
-const EnvFlap = styled.div`
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 52px;
-  overflow: hidden;
-  transform-origin: top center;
-  transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
-  transform: ${({ $aberto }) => $aberto ? 'rotateX(180deg)' : 'rotateX(0deg)'};
-  z-index: 3;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 50%;
-    transform: translateX(-50%);
-    border-left: 70px solid transparent;
-    border-right: 70px solid transparent;
-    border-top: 52px solid #e8d5f5;
-  }
-`
-
-const EnvSeal = styled.div`
-  position: absolute;
-  top: 34px; left: 50%;
-  transform: translateX(-50%);
-  width: 24px; height: 24px;
-  background: linear-gradient(135deg, var(--purple-deep), var(--pink-main));
-  border-radius: 50%;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.3s;
-  opacity: ${({ $aberto }) => $aberto ? 0 : 1};
-`
-
-const RecadoTitle = styled.h3`
-  font-family: 'Playfair Display', serif;
-  font-size: 1.3rem;
-  color: #fff;
-  margin-bottom: 8px;
-  font-style: italic;
-`
-
-const RecadoDesc = styled.p`
-  font-size: 0.8rem;
-  color: var(--lilac);
-  margin-bottom: 28px;
-  line-height: 1.6;
-`
-
-const AudioPlayer = styled.div`
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(180,143,212,0.2);
-  border-radius: 16px;
-  padding: 20px 24px;
-  margin-bottom: 24px;
-  animation: ${popIn} 0.4s ease;
-
-  audio {
-    width: 100%;
-    outline: none;
-  }
-`
-
 const BtnFechar = styled.button`
   background: transparent;
   border: 1px solid rgba(255,255,255,0.15);
@@ -488,19 +399,6 @@ export default function Surpresas() {
   const [solOpen, setSolOpen]                 = useState(false)
   const [constelaOpen, setConstelaOpen]       = useState(false)
   const [recadoOpen, setRecadoOpen]           = useState(false)
-  const [envelopeAberto, setEnvelopeAberto]   = useState(false)
-  const [audioUrl, setAudioUrl]               = useState('')
-  const [mostrarAudio, setMostrarAudio]       = useState(false)
-
-  useEffect(() => {
-    async function fetchConfig() {
-      const snap = await getDocs(collection(db, 'config'))
-      snap.docs.forEach(d => {
-        if (d.id === 'surpresas') setAudioUrl(d.data().audioUrl || '')
-      })
-    }
-    fetchConfig()
-  }, [])
 
   function fazerChuva() {
     const colors = ['#E8829A','#B48FD4','#F7C5D0','#7C4D9F','#FFD98E']
@@ -524,15 +422,8 @@ export default function Surpresas() {
     setMensagemOpen(true)
   }
 
-  function abrirRecado() {
-    setRecadoOpen(true)
-    setEnvelopeAberto(false)
-    setMostrarAudio(false)
-  }
-
-  function abrirEnvelope() {
-    setEnvelopeAberto(true)
-    setTimeout(() => setMostrarAudio(true), 600)
+  if (recadoOpen) {
+    return <RecadosVoz onVoltar={() => setRecadoOpen(false)} />
   }
 
   return (
@@ -614,7 +505,7 @@ export default function Surpresas() {
             <SurpresaDesc>Seu nome escrito nas estrelas</SurpresaDesc>
           </SurpresaCard>
 
-          <SurpresaCard $delay={2.5} onClick={abrirRecado}>
+          <SurpresaCard $delay={2.5} onClick={() => setRecadoOpen(true)}>
             <SurpresaIcon style={{ background: 'linear-gradient(135deg, #B48FD4, #E8829A)' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -680,34 +571,6 @@ export default function Surpresas() {
           <BtnFechar onClick={() => setConstelaOpen(false)}>Fechar</BtnFechar>
         </ConstelaWrap>
       </ConstelaOverlay>
-
-      {/* Recado de voz */}
-      <Overlay $visible={recadoOpen} onClick={e => e.target === e.currentTarget && setRecadoOpen(false)}>
-        <RecadoCard>
-          <RecadoTitle>Tem uma mensagem para você</RecadoTitle>
-          <RecadoDesc>Clique no envelope para ouvir</RecadoDesc>
-          <EnvelopeWrap onClick={abrirEnvelope}>
-            <EnvBody />
-            <EnvFlap $aberto={envelopeAberto} />
-            <EnvSeal $aberto={envelopeAberto}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="white">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-            </EnvSeal>
-          </EnvelopeWrap>
-          {mostrarAudio && audioUrl && (
-            <AudioPlayer>
-              <audio controls autoPlay src={audioUrl} />
-            </AudioPlayer>
-          )}
-          {mostrarAudio && !audioUrl && (
-            <p style={{ color: 'var(--lilac)', fontSize: '0.78rem', marginBottom: '20px', fontStyle: 'italic' }}>
-              Nenhum áudio configurado ainda.
-            </p>
-          )}
-          <BtnFechar onClick={() => setRecadoOpen(false)}>Fechar</BtnFechar>
-        </RecadoCard>
-      </Overlay>
     </Wrapper>
   )
 }

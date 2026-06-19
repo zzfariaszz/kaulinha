@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import Home from './sections/Home'
 import Contador from './sections/Contador'
-import Cartas from './sections/Cartas'
+import Mensagens from './sections/Mensagens'
 import Razoes from './sections/Razoes'
 import LinhaDoTempo from './sections/LinhaDoTempo'
 import Lembrancas from './sections/Lembrancas'
@@ -35,7 +35,7 @@ function App() {
       <Navbar />
       <Home />
       <Contador />
-      <Cartas />
+      <Mensagens />
       <Razoes />
       <LinhaDoTempo />
       <Lembrancas />

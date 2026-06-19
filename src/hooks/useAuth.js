@@ -3,17 +3,21 @@ import { useState, useEffect } from 'react'
 const PASSWORD = import.meta.env.VITE_APP_PASSWORD
 
 export function useAuth() {
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [isLogado, setIsLogado] = useState(false)
+  const [carregando, setCarregando] = useState(true)
 
   useEffect(() => {
     const auth = sessionStorage.getItem('auth')
-    setIsAdmin(auth === PASSWORD)
+    if (auth === PASSWORD) {
+      setIsLogado(true)
+    }
+    setCarregando(false)
   }, [])
 
   function login(senha) {
     if (senha === PASSWORD) {
       sessionStorage.setItem('auth', PASSWORD)
-      setIsAdmin(true)
+      setIsLogado(true)
       return true
     }
     return false
@@ -21,8 +25,8 @@ export function useAuth() {
 
   function logout() {
     sessionStorage.removeItem('auth')
-    setIsAdmin(false)
+    setIsLogado(false)
   }
 
-  return { isAdmin, login, logout }
+  return { isLogado, login, logout, carregando }
 }

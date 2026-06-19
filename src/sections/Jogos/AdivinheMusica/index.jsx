@@ -150,7 +150,7 @@ const ProgressFill = styled.div`
   border-radius: 2px;
   background: linear-gradient(90deg, var(--purple-deep), var(--pink-main));
   width: ${({ $pct }) => $pct}%;
-  transition: width 0.5s linear;
+  transition: width 0.1s linear;
 `
 
 const TempoText = styled.p`
@@ -438,15 +438,32 @@ const TEMPO_TOTAL  = 30
 
 function getMensagem(acertos, total) {
   const pct = acertos / total
-  if (pct === 1)   return 'Você conhece todas as músicas! Incrível!'
-  if (pct >= 0.75) return 'Muito bem! Você conhece bem as músicas!'
-  if (pct >= 0.5)  return 'Não foi mal! Mas tem músicas pra descobrir ainda...'
-  return 'Hmm, precisa ouvir mais as músicas!'
+  if (pct === 1)   return 'Você sabe muito!'
+  if (pct >= 0.75) return 'bom!'
+  if (pct >= 0.5)  return 'da pra melhorar.'
+  return 'melhor ficar de boa.'
+}
+
+// ── SPOTIFY AUTH ──
+const CLIENT_ID = import.meta.env.VITE_SPOTIFY_CLIENT_ID
+const CLIENT_SECRET = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET
+
+async function getSpotifyToken() {
+  const response = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': 'Basic ' + btoa(CLIENT_ID + ':' + CLIENT_SECRET),
+    },
+    body: 'grant_type=client_credentials',
+  })
+  const data = await response.json()
+  return data.access_token
 }
 
 // ── COMPONENTE ──
 export default function AdivinheMusica({ onVoltar }) {
-  const { isAdmin } = useAuth()
+  const { isLogado } = useAuth()
   const [musicas, setMusicas]         = useState([])
   const [rodada, setRodada]           = useState(null)
   const [opcoes, setOpcoes]           = useState([])
@@ -458,18 +475,32 @@ export default function AdivinheMusica({ onVoltar }) {
   const [fim, setFim]                 = useState(false)
   const [formOpen, setFormOpen]       = useState(false)
   const [novaMusica, setNovaMusica]   = useState({ titulo: '', artista: '', spotifyId: '' })
-  const playerRef = useRef(null)
+  const [spotifyToken, setSpotifyToken] = useState(null)
+  const audioRef = useRef(null)
   const timerRef  = useRef(null)
 
   const TOTAL_RODADAS = 5
 
   useEffect(() => {
+    // Obter token do Spotify
+    async function initSpotify() {
+      try {
+        const token = await getSpotifyToken()
+        setSpotifyToken(token)
+      } catch (err) {
+        console.error('Erro ao obter token Spotify:', err)
+      }
+    }
+
+    // Carregar músicas
     async function fetchMusicas() {
       const snap = await getDocs(collection(db, 'jogo_musicas'))
       const lista = snap.docs.map(d => ({ id: d.id, ...d.data() }))
       setMusicas(lista)
       if (lista.length >= 4) iniciarRodada(lista, 0)
     }
+
+    initSpotify()
     fetchMusicas()
     return () => clearInterval(timerRef.current)
   }, [])
@@ -489,23 +520,59 @@ export default function AdivinheMusica({ onVoltar }) {
     clearInterval(timerRef.current)
   }
 
-  function handlePlay() {
-    setTocando(true)
-    timerRef.current = setInterval(() => {
-      setTempo(t => {
-        if (t <= 1) {
+  async function handlePlay() {
+    if (!rodada || !spotifyToken) return
+
+    try {
+      // Buscar preview da música no Spotify
+      const response = await fetch(
+        `https://api.spotify.com/v1/tracks/${rodada.spotifyId}`,
+        { headers: { 'Authorization': `Bearer ${spotifyToken}` } }
+      )
+      const data = await response.json()
+
+      if (data.preview_url) {
+        if (audioRef.current) {
+          audioRef.current.pause()
+        }
+        audioRef.current = new Audio(data.preview_url)
+        audioRef.current.play()
+        setTocando(true)
+
+        // Timer para contar 30 segundos
+        let tempoRestante = TEMPO_TOTAL
+        setTempo(tempoRestante)
+
+        timerRef.current = setInterval(() => {
+          tempoRestante--
+          setTempo(tempoRestante)
+
+          if (tempoRestante <= 0) {
+            clearInterval(timerRef.current)
+            audioRef.current.pause()
+            setTocando(false)
+            setTempo(TEMPO_TOTAL)
+          }
+        }, 1000)
+
+        audioRef.current.onended = () => {
           clearInterval(timerRef.current)
           setTocando(false)
-          return 0
+          setTempo(TEMPO_TOTAL)
         }
-        return t - 1
-      })
-    }, 1000)
+      } else {
+        alert('Essa música não tem preview disponível no Spotify')
+      }
+    } catch (err) {
+      console.error('Erro ao reproduzir:', err)
+      alert('Erro ao reproduzir a música')
+    }
   }
 
   function handleOpcao(i) {
     if (selecionada !== null) return
     clearInterval(timerRef.current)
+    if (audioRef.current) audioRef.current.pause()
     setTocando(false)
     setSelecionada(i)
     const certa = opcoes[i].id === rodada.id
@@ -516,6 +583,8 @@ export default function AdivinheMusica({ onVoltar }) {
   }
 
   function handleProxima() {
+    clearInterval(timerRef.current)
+    if (audioRef.current) audioRef.current.pause()
     iniciarRodada(musicas, rodadaNum + 1)
   }
 
@@ -550,7 +619,7 @@ export default function AdivinheMusica({ onVoltar }) {
             </p>
           </SemMusicas>
           <BtnRow>
-            {isAdmin && (
+            {isLogado && (
               <BtnAddMusica onClick={() => setFormOpen(true)}>
                 + Adicionar música ao jogo
               </BtnAddMusica>
@@ -613,7 +682,7 @@ export default function AdivinheMusica({ onVoltar }) {
           </ResultadoWrap>
           <BtnRow>
             <BtnNovo onClick={reiniciar}>Jogar novamente</BtnNovo>
-            {isAdmin && (
+            {isLogado && (
               <BtnAddMusica onClick={() => setFormOpen(true)}>
                 + Adicionar música ao jogo
               </BtnAddMusica>
@@ -703,20 +772,6 @@ export default function AdivinheMusica({ onVoltar }) {
           <TempoText>{tempo}s restantes</TempoText>
         </PlayerWrap>
 
-        {rodada.spotifyId && (
-          <div style={{ marginBottom: '20px', borderRadius: '12px', overflow: 'hidden' }}>
-            <iframe
-              ref={playerRef}
-              src={`https://open.spotify.com/embed/track/${rodada.spotifyId}?utm_source=generator&theme=0`}
-              width="100%"
-              height="80"
-              frameBorder="0"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-            />
-          </div>
-        )}
-
         <PerguntaText>Qual é essa música?</PerguntaText>
 
         <OpcoesGrid>
@@ -758,7 +813,7 @@ export default function AdivinheMusica({ onVoltar }) {
               {rodadaNum + 1 >= TOTAL_RODADAS ? 'Ver resultado' : 'Próxima'}
             </BtnNovo>
           )}
-          {isAdmin && (
+          {isLogado && (
             <BtnAddMusica onClick={() => setFormOpen(true)}>
               + Adicionar música ao jogo
             </BtnAddMusica>
