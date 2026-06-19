@@ -516,54 +516,61 @@ export default function AdivinheMusica({ onVoltar }) {
     clearInterval(timerRef.current)
   }
 
-  async function handlePlay() {
-    if (!rodada || !spotifyToken) return
+ async function handlePlay() {
+  if (!rodada || !spotifyToken) {
+    console.log('Rodada:', rodada, 'Token:', spotifyToken)
+    alert('Aguarde um momento, carregando...')
+    return
+  }
 
-    try {
-      // Buscar preview da música no Spotify
-      const response = await fetch(
-        `https://api.spotify.com/v1/tracks/${rodada.spotifyId}`,
-        { headers: { 'Authorization': `Bearer ${spotifyToken}` } }
-      )
-      const data = await response.json()
+  try {
+    console.log('Buscando preview para:', rodada.spotifyId)
+    
+    // Buscar preview da música no Spotify
+    const response = await fetch(
+      `https://api.spotify.com/v1/tracks/${rodada.spotifyId}`,
+      { headers: { 'Authorization': `Bearer ${spotifyToken}` } }
+    )
+    const data = await response.json()
+    console.log('Resposta Spotify:', data)
 
-      if (data.preview_url) {
-        if (audioRef.current) {
-          audioRef.current.pause()
-        }
-        audioRef.current = new Audio(data.preview_url)
-        audioRef.current.play()
-        setTocando(true)
+    if (data.preview_url) {
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+      audioRef.current = new Audio(data.preview_url)
+      audioRef.current.play()
+      setTocando(true)
 
-        // Timer para contar 30 segundos
-        let tempoRestante = TEMPO_TOTAL
+      // Timer para contar 30 segundos
+      let tempoRestante = TEMPO_TOTAL
+      setTempo(tempoRestante)
+
+      timerRef.current = setInterval(() => {
+        tempoRestante--
         setTempo(tempoRestante)
 
-        timerRef.current = setInterval(() => {
-          tempoRestante--
-          setTempo(tempoRestante)
-
-          if (tempoRestante <= 0) {
-            clearInterval(timerRef.current)
-            audioRef.current.pause()
-            setTocando(false)
-            setTempo(TEMPO_TOTAL)
-          }
-        }, 1000)
-
-        audioRef.current.onended = () => {
+        if (tempoRestante <= 0) {
           clearInterval(timerRef.current)
+          audioRef.current.pause()
           setTocando(false)
           setTempo(TEMPO_TOTAL)
         }
-      } else {
-        alert('Essa música não tem preview disponível no Spotify')
+      }, 1000)
+
+      audioRef.current.onended = () => {
+        clearInterval(timerRef.current)
+        setTocando(false)
+        setTempo(TEMPO_TOTAL)
       }
-    } catch (err) {
-      console.error('Erro ao reproduzir:', err)
-      alert('Erro ao reproduzir a música')
+    } else {
+      alert('Essa música não tem preview disponível no Spotify')
     }
+  } catch (err) {
+    console.error('Erro ao reproduzir:', err)
+    alert('Erro ao reproduzir a música: ' + err.message)
   }
+}
 
   function handleOpcao(i) {
     if (selecionada !== null) return
