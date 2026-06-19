@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, getDocs } from 'firebase/firestore'
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore'
 import { db } from '../../services/firebase'
 import styled, { keyframes } from 'styled-components'
 import confetti from 'canvas-confetti'
@@ -369,6 +369,81 @@ const BtnFechar = styled.button`
   &:hover { background: rgba(255,255,255,0.06); color: #fff; }
 `
 
+// ── BEIJOS ──
+const BeijosOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(20,8,36,0.92);
+  backdrop-filter: blur(12px);
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: ${({ $visible }) => $visible ? 1 : 0};
+  pointer-events: ${({ $visible }) => $visible ? 'all' : 'none'};
+  transition: opacity 0.4s;
+`
+
+const BeijosCard = styled.div`
+  text-align: center;
+  animation: ${popIn} 0.5s ease;
+`
+
+const BeijosNumero = styled.h2`
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(5rem, 15vw, 9rem);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--pink-main), #FFD98E);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 8px;
+`
+
+const BeijosLabel = styled.p`
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--lilac);
+  margin-bottom: 48px;
+  letter-spacing: 0.05em;
+`
+
+const BeijosBtn = styled.button`
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--pink-main), #FFD98E);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 32px;
+  box-shadow: 0 12px 40px rgba(232,130,154,0.4);
+  font-size: 3.5rem;
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: ${heartBeat} 2s ease-in-out infinite;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 16px 48px rgba(232,130,154,0.6);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+`
+
+const BeijosMensagem = styled.p`
+  font-family: 'Dancing Script', cursive;
+  font-size: 1.3rem;
+  color: var(--pink-light);
+  margin-bottom: 32px;
+`
+
 const MENSAGENS = [
   'você é a melhor coisa que já aconteceu comigo',
   'meu dia fica melhor com você nele',
@@ -392,13 +467,51 @@ const ESTRELAS = Array.from({ length: 20 }, (_, i) => ({
 }))
 
 export default function Surpresas() {
-  const [petals, setPetals]                   = useState([])
-  const [coracaoOpen, setCoracaoOpen]         = useState(false)
-  const [mensagemOpen, setMensagemOpen]       = useState(false)
-  const [mensagemAtual, setMensagemAtual]     = useState('')
-  const [solOpen, setSolOpen]                 = useState(false)
-  const [constelaOpen, setConstelaOpen]       = useState(false)
-  const [recadoOpen, setRecadoOpen]           = useState(false)
+  const [petals, setPetals]               = useState([])
+  const [coracaoOpen, setCoracaoOpen]     = useState(false)
+  const [mensagemOpen, setMensagemOpen]   = useState(false)
+  const [mensagemAtual, setMensagemAtual] = useState('')
+  const [solOpen, setSolOpen]             = useState(false)
+  const [constelaOpen, setConstelaOpen]   = useState(false)
+  const [recadoOpen, setRecadoOpen]       = useState(false)
+  const [beijosOpen, setBeijosOpen]       = useState(false)
+  const [totalBeijos, setTotalBeijos]     = useState(0)
+
+  useEffect(() => {
+    async function fetchBeijos() {
+      try {
+        const ref = doc(db, 'config', 'beijos')
+        const snap = await getDoc(ref)
+        if (snap.exists()) {
+          setTotalBeijos(snap.data().total || 0)
+        }
+      } catch (err) {
+        console.error('Erro ao buscar beijos:', err)
+      }
+    }
+    fetchBeijos()
+  }, [])
+
+  async function registrarBeijo() {
+    try {
+      const ref = doc(db, 'config', 'beijos')
+      const snap = await getDoc(ref)
+      if (snap.exists()) {
+        await updateDoc(ref, { total: increment(1) })
+      } else {
+        await setDoc(ref, { total: 1 })
+      }
+      setTotalBeijos(prev => prev + 1)
+      confetti({
+        particleCount: 60,
+        spread: 80,
+        colors: ['#E8829A', '#F7C5D0', '#FFD98E', '#B48FD4'],
+        origin: { y: 0.6 }
+      })
+    } catch (err) {
+      console.error('Erro ao registrar beijo:', err)
+    }
+  }
 
   function fazerChuva() {
     const colors = ['#E8829A','#B48FD4','#F7C5D0','#7C4D9F','#FFD98E']
@@ -517,6 +630,14 @@ export default function Surpresas() {
             <SurpresaTitle>Recado de Voz</SurpresaTitle>
             <SurpresaDesc>Tem uma mensagem esperando por você</SurpresaDesc>
           </SurpresaCard>
+
+          <SurpresaCard $delay={3} onClick={() => setBeijosOpen(true)}>
+            <SurpresaIcon style={{ background: 'linear-gradient(135deg, #E8829A, #FFD98E)' }}>
+              <span style={{ fontSize: '1.4rem' }}>💋</span>
+            </SurpresaIcon>
+            <SurpresaTitle>Contador de Beijos</SurpresaTitle>
+            <SurpresaDesc>Cada beijo conta, registre esse momento</SurpresaDesc>
+          </SurpresaCard>
         </Grid>
       </Inner>
 
@@ -571,6 +692,24 @@ export default function Surpresas() {
           <BtnFechar onClick={() => setConstelaOpen(false)}>Fechar</BtnFechar>
         </ConstelaWrap>
       </ConstelaOverlay>
+
+      {/* Contador de Beijos */}
+      <BeijosOverlay $visible={beijosOpen} onClick={e => e.target === e.currentTarget && setBeijosOpen(false)}>
+        <BeijosCard>
+          <BeijosNumero>{totalBeijos}</BeijosNumero>
+          <BeijosLabel>beijos trocados</BeijosLabel>
+          <BeijosBtn onClick={registrarBeijo}>💋</BeijosBtn>
+          <BeijosMensagem>
+            {totalBeijos === 0
+              ? 'Clique para registrar o primeiro beijo!'
+              : totalBeijos === 1
+              ? 'O primeiro de muitos!'
+              : `que ${totalBeijos} beijos lindos!`
+            }
+          </BeijosMensagem>
+          <BtnFechar onClick={() => setBeijosOpen(false)}>Fechar</BtnFechar>
+        </BeijosCard>
+      </BeijosOverlay>
     </Wrapper>
   )
 }
