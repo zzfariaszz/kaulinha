@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { db } from '../services/firebase'
 
 const PASSWORD = import.meta.env.VITE_APP_PASSWORD
 
@@ -14,10 +16,22 @@ export function useAuth() {
     setCarregando(false)
   }, [])
 
-  function login(senha) {
+  async function login(senha, quem) {
     if (senha === PASSWORD) {
       sessionStorage.setItem('auth', PASSWORD)
+      sessionStorage.setItem('quem', quem)
       setIsLogado(true)
+
+      // Salva no Firestore quem logou e quando
+      try {
+        await setDoc(doc(db, 'config', 'ultimo_login'), {
+          quem,
+          horario: new Date(),
+        })
+      } catch (err) {
+        console.error('Erro ao salvar login:', err)
+      }
+
       return true
     }
     return false
@@ -25,6 +39,7 @@ export function useAuth() {
 
   function logout() {
     sessionStorage.removeItem('auth')
+    sessionStorage.removeItem('quem')
     setIsLogado(false)
   }
 

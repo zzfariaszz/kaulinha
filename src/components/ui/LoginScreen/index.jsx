@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../../../services/firebase'
 import styled, { keyframes, css } from 'styled-components'
 
 const fadeIn = keyframes`
@@ -152,8 +154,59 @@ const Subtitle = styled.p`
   font-style: italic;
   font-size: 0.9rem;
   color: var(--lilac);
-  margin-bottom: 36px;
+  margin-bottom: 24px;
   line-height: 1.6;
+`
+
+const UltimoLogin = styled.div`
+  background: rgba(124,77,159,0.08);
+  border: 1px solid rgba(124,77,159,0.15);
+  border-radius: 12px;
+  padding: 10px 16px;
+  margin-bottom: 24px;
+  font-size: 0.72rem;
+  color: var(--purple-deep);
+  font-family: 'Lato', sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+
+  span {
+    font-weight: 600;
+    color: var(--pink-main);
+  }
+`
+
+const QuemWrap = styled.div`
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+`
+
+const QuemBtn = styled.button`
+  flex: 1;
+  padding: 12px;
+  border-radius: 30px;
+  border: 1.5px solid ${({ $ativo }) => $ativo ? 'var(--purple-deep)' : 'rgba(124,77,159,0.2)'};
+  background: ${({ $ativo }) => $ativo
+    ? 'linear-gradient(135deg, var(--purple-deep), var(--pink-main))'
+    : 'rgba(255,255,255,0.6)'
+  };
+  color: ${({ $ativo }) => $ativo ? '#fff' : 'var(--purple-deep)'};
+  font-family: 'Lato', sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: ${({ $ativo }) => $ativo ? '600' : '300'};
+
+  &:hover {
+    border-color: var(--purple-deep);
+    background: ${({ $ativo }) => $ativo
+      ? 'linear-gradient(135deg, var(--purple-deep), var(--pink-main))'
+      : 'rgba(124,77,159,0.08)'
+    };
+  }
 `
 
 const InputWrap = styled.div`
@@ -227,9 +280,7 @@ const BtnEntrar = styled.button`
     box-shadow: 0 10px 32px rgba(124,77,159,0.45);
   }
 
-  &:active {
-    transform: translateY(0);
-  }
+  &:active { transform: translateY(0); }
 `
 
 const DICAS = [
@@ -255,11 +306,13 @@ const PASSWORD = import.meta.env.VITE_APP_PASSWORD
 
 export default function LoginScreen({ onLogin }) {
   const canvasRef = useRef(null)
-  const [senha, setSenha] = useState('')
-  const [erro, setErro] = useState(false)
-  const [shake, setShake] = useState(false)
+  const [senha, setSenha]       = useState('')
+  const [erro, setErro]         = useState(false)
+  const [shake, setShake]       = useState(false)
   const [dicaIndex, setDicaIndex] = useState(0)
-  const [petalas, setPetalas] = useState(() => criarPetalas(25))
+  const [petalas, setPetalas]   = useState(() => criarPetalas(25))
+  const [quem, setQuem]         = useState('')
+  const [ultimoLogin, setUltimoLogin] = useState(null)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -320,9 +373,42 @@ export default function LoginScreen({ onLogin }) {
     return () => clearInterval(id)
   }, [])
 
-  function handleLogin() {
+  // Busca último login no Firestore
+  useEffect(() => {
+    async function fetchUltimoLogin() {
+      try {
+        const snap = await getDoc(doc(db, 'config', 'ultimo_login'))
+        if (snap.exists()) {
+          setUltimoLogin(snap.data())
+        }
+      } catch (err) {
+        console.error('Erro ao buscar último login:', err)
+      }
+    }
+    fetchUltimoLogin()
+  }, [])
+
+  async function handleLogin() {
+    if (!quem) {
+      alert('Selecione quem está entrando!')
+      return
+    }
+
     if (senha === PASSWORD) {
       sessionStorage.setItem('auth', PASSWORD)
+      sessionStorage.setItem('quem', quem)
+
+      // Salva no Firestore
+      try {
+        const { doc: firestoreDoc, setDoc } = await import('firebase/firestore')
+        await setDoc(firestoreDoc(db, 'config', 'ultimo_login'), {
+          quem,
+          horario: new Date(),
+        })
+      } catch (err) {
+        console.error('Erro ao salvar login:', err)
+      }
+
       onLogin()
     } else {
       setErro(true)
@@ -335,6 +421,18 @@ export default function LoginScreen({ onLogin }) {
 
   function handleKey(e) {
     if (e.key === 'Enter') handleLogin()
+  }
+
+  function formatHorario(horario) {
+    if (!horario) return ''
+    const d = horario.toDate ? horario.toDate() : new Date(horario)
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
   }
 
   return (
@@ -374,8 +472,31 @@ export default function LoginScreen({ onLogin }) {
 
         <Subtitle>
           esse espaço é só nosso.<br />
-          digite a senha para entrar.
+          quem está entrando?
         </Subtitle>
+
+        <QuemWrap>
+          <QuemBtn
+            $ativo={quem === 'Felipe'}
+            onClick={() => setQuem('Felipe')}
+          >
+            Felipe
+          </QuemBtn>
+          <QuemBtn
+            $ativo={quem === 'Kaulinha'}
+            onClick={() => setQuem('Kaulinha')}
+          >
+            Kaulinha
+          </QuemBtn>
+        </QuemWrap>
+
+        {ultimoLogin && (
+          <UltimoLogin>
+            último login: <span>{ultimoLogin.quem}</span>
+            <br />
+            {formatHorario(ultimoLogin.horario)}
+          </UltimoLogin>
+        )}
 
         <InputWrap $shake={shake}>
           <Input

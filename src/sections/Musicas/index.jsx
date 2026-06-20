@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { collection, addDoc, getDocs, orderBy, query } from 'firebase/firestore'
+import { collection, addDoc, getDocs, orderBy, query, serverTimestamp } from 'firebase/firestore'
 import { db } from '../../services/firebase'
 import { useAuth } from '../../hooks/useAuth'
 import styled, { keyframes } from 'styled-components'
@@ -296,39 +296,48 @@ const BtnSubmit = styled.button`
 
 // ── COMPONENTE ──
 export default function Musicas() {
-  const { isAdmin } = useAuth()
-  const [musicas, setMusicas] = useState([])
+  const { isLogado } = useAuth()
+  const [musicas, setMusicas]   = useState([])
   const [formOpen, setFormOpen] = useState(false)
-  const [form, setForm] = useState({ titulo: '', artista: '', nota: '', spotifyId: '' })
+  const [form, setForm]         = useState({ titulo: '', artista: '', nota: '', spotifyId: '' })
   const [playlistId, setPlaylistId] = useState('')
 
   useEffect(() => {
-    async function fetch() {
-      const q = query(collection(db, 'musicas'), orderBy('data', 'asc'))
-      const snap = await getDocs(q)
-      setMusicas(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    async function fetchData() {
+      try {
+        const q = query(collection(db, 'musicas'), orderBy('data', 'asc'))
+        const snap = await getDocs(q)
+        setMusicas(snap.docs.map(d => ({ id: d.id, ...d.data() })))
 
-      const playlistSnap = await getDocs(collection(db, 'config'))
-      playlistSnap.docs.forEach(d => {
-        if (d.id === 'spotify') setPlaylistId(d.data().playlistId || '')
-      })
+        const playlistSnap = await getDocs(collection(db, 'config'))
+        playlistSnap.docs.forEach(d => {
+          if (d.id === 'spotify') setPlaylistId(d.data().playlistId || '')
+        })
+      } catch (err) {
+        console.error('Erro ao carregar músicas:', err)
+      }
     }
-    fetch()
+    fetchData()
   }, [])
 
   async function handleSubmit() {
     if (!form.titulo.trim()) return
-    const nova = { ...form, data: new Date() }
-    const ref = await addDoc(collection(db, 'musicas'), nova)
-    setMusicas(prev => [...prev, { id: ref.id, ...nova }])
-    setForm({ titulo: '', artista: '', nota: '', spotifyId: '' })
-    setFormOpen(false)
+    try {
+      const nova = { ...form, data: serverTimestamp() }
+      const ref = await addDoc(collection(db, 'musicas'), nova)
+      setMusicas(prev => [...prev, { id: ref.id, ...nova, data: new Date() }])
+      setForm({ titulo: '', artista: '', nota: '', spotifyId: '' })
+      setFormOpen(false)
+    } catch (err) {
+      console.error('Erro ao salvar:', err)
+      alert('Erro ao salvar a música')
+    }
   }
 
   return (
     <Wrapper id="musicas">
       <Inner>
-        <Eyebrow>Músicas pra nos</Eyebrow>
+        <Eyebrow>músicas pra nós</Eyebrow>
         <Title>Nossas <em>Músicas</em></Title>
         <Divider />
 
@@ -365,7 +374,7 @@ export default function Musicas() {
           ))}
         </Grid>
 
-        {isAdmin && (
+        {isLogado && (
           <AddBtn onClick={() => setFormOpen(true)}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>

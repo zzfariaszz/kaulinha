@@ -1,15 +1,16 @@
 import { useEffect, useRef } from 'react'
 import styled, { keyframes } from 'styled-components'
+
 const FOTOS = [
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto1_nsidz5.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto2_mtgglu.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto3_loq7io.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto4_fbswyc.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto5_tjpqlm.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto6_u1nb0k.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368132/foto7_um8ht0.jpg`,
-`https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368132/foto8_sldqcw.jpg`
-];
+  `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto1_nsidz5.jpg`,
+  `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto2_mtgglu.jpg`,
+  `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto3_loq7io.jpg`,
+  `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto4_fbswyc.jpg`,
+  `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto5_tjpqlm.jpg`,
+  `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368131/foto6_u1nb0k.jpg`,
+  `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368132/foto7_um8ht0.jpg`,
+  `https://res.cloudinary.com/dtg6bxqaz/image/upload/v1780368132/foto8_sldqcw.jpg`,
+]
 
 // ── ANIMAÇÕES ──
 const float1 = keyframes`
@@ -38,6 +39,7 @@ const Wrapper = styled.div`
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  color-scheme: light only;
 `
 
 const Canvas = styled.canvas`
@@ -220,74 +222,7 @@ const Subtitle = styled.p`
   font-style: italic;
   font-size: 1rem;
   color: var(--lilac);
-  margin-bottom: 28px;
   line-height: 1.65;
-`
-
-const Counter = styled.div`
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  align-items: flex-start;
-  margin-bottom: 32px;
-  flex-wrap: wrap;
-
-  @media (max-width: 480px) {
-    gap: 6px;
-  }
-`
-
-const CounterItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-`
-
-const Num = styled.span`
-  font-family: 'Playfair Display', serif;
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--purple-dark);
-  line-height: 1;
-
-  @media (max-width: 480px) {
-    font-size: 1.1rem;
-  }
-`
-const Label = styled.span`
-  font-size: 0.58rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--lilac);
-  font-weight: 300;
-`
-
-const Sep = styled.span`
-  font-family: 'Playfair Display', serif;
-  font-size: 1.3rem;
-  color: var(--pink-main);
-  margin-top: 2px;
-`
-
-const Button = styled.button`
-  font-family: 'Lato', sans-serif;
-  font-size: 0.74rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  padding: 13px 34px;
-  border-radius: 40px;
-  border: none;
-  cursor: pointer;
-  background: linear-gradient(135deg, var(--purple-deep), var(--pink-main));
-  color: #fff;
-  box-shadow: 0 6px 24px rgba(124,77,159,0.35);
-  transition: transform 0.25s, box-shadow 0.25s;
-
-  &:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 32px rgba(124,77,159,0.45);
-  }
 `
 
 // ── COMPONENTE ──
@@ -354,21 +289,21 @@ export default function Home() {
       <Blob className="blob-2" />
       <Blob className="blob-3" />
 
-    <PolaroidsLeft>
-      {[FOTOS[0], FOTOS[1], FOTOS[2], FOTOS[3]].map((foto, i) => (
-    <Polaroid key={i}>
-      <img src={foto} alt="" />
-    </Polaroid>
-  ))}
-</PolaroidsLeft>
+      <PolaroidsLeft>
+        {[FOTOS[0], FOTOS[1], FOTOS[2], FOTOS[3]].map((foto, i) => (
+          <Polaroid key={i}>
+            <img src={foto} alt="" />
+          </Polaroid>
+        ))}
+      </PolaroidsLeft>
 
-  <PolaroidsRight>
-  {[FOTOS[4], FOTOS[5], FOTOS[6], FOTOS[7]].map((foto, i) => (
-    <Polaroid key={i}>
-      <img src={foto} alt="" />
-    </Polaroid>
-  ))}
-</PolaroidsRight>
+      <PolaroidsRight>
+        {[FOTOS[4], FOTOS[5], FOTOS[6], FOTOS[7]].map((foto, i) => (
+          <Polaroid key={i}>
+            <img src={foto} alt="" />
+          </Polaroid>
+        ))}
+      </PolaroidsRight>
 
       <Center>
         <Eyebrow>um projeto feito com amor</Eyebrow>
@@ -378,17 +313,6 @@ export default function Home() {
         </Title>
         <Divider />
         <Subtitle>cada detalhe aqui foi pensado especialmente para você.</Subtitle>
-        <Counter>
-          <CounterItem><Num>00</Num><Label>anos</Label></CounterItem>
-          <Sep>·</Sep>
-          <CounterItem><Num>00</Num><Label>meses</Label></CounterItem>
-          <Sep>·</Sep>
-          <CounterItem><Num>00</Num><Label>dias</Label></CounterItem>
-          <Sep>·</Sep>
-          <CounterItem><Num>00</Num><Label>horas</Label></CounterItem>
-          <Sep>·</Sep>
-          <CounterItem><Num>00</Num><Label>min</Label></CounterItem>
-        </Counter>
       </Center>
     </Wrapper>
   )
