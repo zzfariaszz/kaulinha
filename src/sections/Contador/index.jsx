@@ -113,7 +113,7 @@ function calcDias(dataInicio, dataFim) {
 }
 
 const DATA_INICIO = '2019-10-23'
-const DATA_FIM    = '2026-06-19'
+const DATA_FIM    = '2026-06-20'
 const MENSAGEM    = 'foi um bom tempo juntos,não é? eu acabei escolhendo encerrar o contador porque você não quis inicia-lo e teve aquela explicação de como você  se sentia ontem, então como eu disse, vou respeitar a sua decisão e o seu momento. Saiba que eu te amo muito e que eu gostaria de passar muito mais tempo com você, mas se esse é o caminho que você escolheu, eu vou respeitar. Obrigado por tudo, por cada dia, por cada momento, por cada sorriso, por cada lágrima, por cada abraço, por cada palavra, por cada silêncio enfim por cada momento que passamos juntos, eu te amo muito e espero que você seja muito feliz, sempre. Estarei sempre torcendo por você, mesmo que de longe, e se um dia você quiser conversar ou se reaproximar, saiba que eu estarei aqui, de braços abertos. Obrigado por tudo, de verdade. Te amo muito.'
 // ── COMPONENTE ──
 export default function Contador() {
