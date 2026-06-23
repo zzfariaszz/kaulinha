@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import Home from './sections/Home'
+import Poesias from './sections/Poesias'
 import Contador from './sections/Contador'
 import Mensagens from './sections/Mensagens'
 import Razoes from './sections/Razoes'
@@ -8,7 +9,6 @@ import Lembrancas from './sections/Lembrancas'
 import Musicas from './sections/Musicas'
 import Galeria from './sections/Galeria'
 import Filmes from './sections/Filmes'
-import Mapa from './sections/Mapa'
 import Planos from './sections/Planos'
 import Jogos from './sections/Jogos'
 import Surpresas from './sections/Surpresas/index.jsx'
@@ -34,6 +34,7 @@ function App() {
     <div>
       <Navbar />
       <Home />
+      <Poesias />
       <Contador />
       <Mensagens />
       <Razoes />
@@ -42,7 +43,6 @@ function App() {
       <Musicas />
       <Galeria />
       <Filmes />
-      <Mapa />
       <Planos />
       <Jogos />
       <Surpresas />
